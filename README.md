@@ -2,7 +2,7 @@
 
 This repository contains a Python implementation of the **Artemisinin Optimization Algorithm (AO)** and its variant, the **Weighted Ranking Artemisinin Optimization (WRAO)**, specifically adapted for the **Quadratic Assignment Problem (QAP)**.
 
-## 📌 Project Overview
+## Project Overview
 The objective of this project is to implement and evaluate a metaheuristic approach to solve discrete permutation problems. Since the original AO algorithm is designed for continuous search spaces, this implementation focuses on adapting the algorithm's mechanics to handle permutations effectively.
 
 ### Key Objectives:
@@ -12,7 +12,7 @@ The objective of this project is to implement and evaluate a metaheuristic appro
 
 ---
 
-## 🧠 The Quadratic Assignment Problem (QAP)
+## The Quadratic Assignment Problem (QAP)
 The **Quadratic Assignment Problem** is a fundamental combinatorial optimization problem. It involves assigning $n$ facilities to $n$ locations in a way that minimizes the total cost associated with the flows between facilities and the distances between locations.
 
 ### Mathematical Formulation (Matrix Version)
@@ -30,7 +30,7 @@ The core goal is to ensure that facilities with high interaction (high flow) are
 
 ---
 
-## 📂 Data Structure & Scenarios
+## Data Structure & Scenarios
 The project utilizes instances from the **QAPLIB** database. The repository is structured as follows:
 
 ```text
@@ -43,7 +43,7 @@ The project utilizes instances from the **QAPLIB** database. The repository is s
     └───Lipa           # Instances from P. Lipa
 ```
 
-### 📄 Data Formats
+### Data Formats
 
 #### Input File Format (`.dat`)
 Each scenario file contains the problem data structured as follows:
