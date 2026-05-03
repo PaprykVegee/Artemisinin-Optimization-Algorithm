@@ -11,8 +11,8 @@ system = platform.system()
 def main():
     system = platform.system()
 
-    instance_path = r'Scenarios\Christofides\chr12a.dat'
-    solution_path = r'Scenarios\Christofides\solution\chr12a.sln'
+    instance_path = r'Scenarios\Christofides\chr20a.dat'
+    solution_path = r'Scenarios\Christofides\solution\chr20a.sln'
     
     if system == "Linux":
         instance_path = instance_path.replace("\\", "/")
@@ -42,8 +42,8 @@ def main():
         n_dim=n, 
         flow_matrix=matrix_a, 
         dist_matrix=matrix_b, 
-        pop_size=15, 
-        max_f=500000
+        pop_size=200, 
+        max_f=1000000
     )
 
     best_p, best_score, best_cost_history = optimizer.optimize()
