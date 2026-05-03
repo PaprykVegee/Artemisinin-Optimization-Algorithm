@@ -2,6 +2,7 @@ import numpy as np
 from data_loader import load_instance, load_solution
 from ao_algorithm import ArtemisininOptimizer
 import platform
+import matplotlib.pyplot as plt
 
 system = platform.system()
 
@@ -41,11 +42,11 @@ def main():
         n_dim=n, 
         flow_matrix=matrix_a, 
         dist_matrix=matrix_b, 
-        pop_size=500, 
-        max_f=200000
+        pop_size=15, 
+        max_f=500000
     )
 
-    best_p, best_score = optimizer.optimize()
+    best_p, best_score, best_cost_history = optimizer.optimize()
 
     print("\n--- Optimization Finished ---")
     print(f"Best Score Found: {best_score}")
@@ -58,6 +59,17 @@ def main():
         print("Success! You found the optimal solution.")
     else:
         print(f"The algorithm was {gap:.2f}% away from the optimum.")
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(best_cost_history, label='Best Cost Over Iterations')
+    plt.xlabel('Ewaluacje')
+    plt.ylabel('Koszt (QAP)')
+    plt.title('Artemisinin Optimization')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
 
 if __name__ == "__main__":
     main()
