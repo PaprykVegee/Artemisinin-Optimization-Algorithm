@@ -15,7 +15,6 @@ class ArtemisininOptimizer:
         self.MaxF = max_f               # Maksymalna liczba ocen funkcji celu
         self.f = 0                      # Licznik ewaluacji
         
-        # Inicjalizacja populacji w przestrzeni ciągłej [-1, 1]
         self.population = np.random.uniform(-1, 1, (self.N, self.D))
         self.fitness = np.zeros(self.N)
         
@@ -34,7 +33,7 @@ class ArtemisininOptimizer:
         Oblicza koszt QAP dla danego agenta.
         """
         p = self.rov_mapping(continuous_vector)
-        # Efektywne obliczenie kosztu macierzowego: suma(A * B_przestawione)
+
         cost = np.sum(self.A * self.B[p][:, p])
         return cost
 
@@ -57,27 +56,17 @@ class ArtemisininOptimizer:
         r1 = np.random.rand()
         r2 = np.random.rand()
         
-        # --- 1. Faza Kompleksowej Eliminacji (Eq. 7) ---
-        # Symulacja globalnej eksploracji (duża dawka leku)
         if r2 < K:
             if r1 < 0.5:
-                # Eksploracja wokół bieżącej pozycji
                 self.population[i, j] += c * self.population[i, j] * ((-1)**np.random.randint(2))
             else:
-                # Eksploracja w kierunku najlepszego agenta
                 self.population[i, j] += c * self.best_agent[j] * ((-1)**np.random.randint(2))
-        
-        # --- 2. Faza Lokalnego Oczyszczania (Eq. 8) ---
-        # Symulacja precyzyjnego szukania (lokalna eksploatacja)
+
         else:
-            # Wybór dwóch losowych agentów do wyznaczenia kierunku (jak w DE)
             r_indices = np.random.choice([idx for idx in range(self.N) if idx != i], 2, replace=False)
-            d = 0.5 # Współczynnik kroku
+            d = 0.5 
             self.population[i, j] += d * (self.population[r_indices[0], j] - self.population[r_indices[1], j])
 
-        # --- 3. Faza Konsolidacji Po-terapeutycznej (Eq. 11) ---
-        # Mechanizm krzyżowania informacji (Information Crossover)
-        # Wywoływany z pewnym prawdopodobieństwem, by uniknąć optimów lokalnych
         if np.random.rand() < 0.2:
             self.population[i, j] = 0.5 * (self.population[i, j] + self.best_agent[j])
 
@@ -88,46 +77,34 @@ class ArtemisininOptimizer:
         self.initialize()
         
         while self.f < self.MaxF:
-            # Obliczanie parametrów adaptacyjnych K i c
             progress = self.f / self.MaxF
-            K = 0.5 * (1 - progress)  # Prawdopodobieństwo maleje z czasem
-            # Parametr c symuluje stężenie artemizyny (według wzorów z artykułu)
+            K = 0.5 * (1 - progress)  
             c = 2 * np.exp(-progress) * np.abs(np.cos(np.pi * progress))
             
             for i in range(self.N):
-                # Kopiujemy starą pozycję, by móc wykonać ewentualny powrót (greedy)
                 old_position = self.population[i].copy()
                 
                 for j in range(self.D):
-                    # Aktualizujemy każdy wymiar (liczbę ciągłą)
                     self.update_position(i, j, K, c)
                 
-                # Utrzymanie agenta w granicach przestrzeni [-1, 1]
                 self.population[i] = np.clip(self.population[i], -1, 1)
                 
-                # Ocena nowej pozycji po zmapowaniu na permutację
                 current_fit = self.calculate_qap_fitness(self.population[i])
                 self.f += 1
                 
-                # Aktualizacja populacji (podejście zachłanne - greedy)
                 if current_fit < self.fitness[i]:
                     self.fitness[i] = current_fit
                 else:
-                    # Jeśli nowa pozycja jest gorsza, wracamy (lub AO może pozwolić na ruch)
-                    # W tej wersji stosujemy prosty mechanizm poprawy:
-                    if np.random.rand() > 0.1: # 90% szans na powrót do lepszej pozycji
+                    if np.random.rand() > 0.1: 
                          self.population[i] = old_position
-                    
-                # Aktualizacja globalnego najlepszego rozwiązania
+
                 if current_fit < self.best_fitness:
                     self.best_fitness = current_fit
                     self.best_agent = self.population[i].copy()
-            
-            # Logowanie postępu
+
             if self.f % (self.N * 10) == 0 or self.f >= self.MaxF:
                 print(f"Ewaluacje: {self.f}/{self.MaxF} | Najlepszy koszt (QAP): {self.best_fitness}")
 
-        # Zwrócenie najlepszej znalezionej permutacji i jej kosztu
         return self.rov_mapping(self.best_agent), self.best_fitness
 
 
