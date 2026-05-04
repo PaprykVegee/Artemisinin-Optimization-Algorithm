@@ -78,7 +78,7 @@ def benchmark(n_runs, opt_val, n=None, matrix_a=None, matrix_b=None, pop_size=20
 
     plt.xlabel("Run Number")
     plt.ylabel("Relative GAP [%]")
-    plt.title("GAP for Consecutive Optimizer Runs")
+    plt.title(f"GAP for different runs, n = {n}, pop_size={pop_size}, max_f={max_f}")
     plt.grid(False)
 
     for bar in bars:
@@ -100,6 +100,6 @@ def benchmark(n_runs, opt_val, n=None, matrix_a=None, matrix_b=None, pop_size=20
     plt.plot(global_best_history)
     plt.xlabel("Global Improvements")
     plt.ylabel("Best Cost")
-    plt.title("Best Run")
+    plt.title(f"Best Run, n = {n}")
     plt.grid(True)
     plt.show()
