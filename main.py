@@ -1,4 +1,5 @@
 import numpy as np
+from benchmark import benchmark
 from data_loader import load_instance, load_solution
 from ao_algorithm import ArtemisininOptimizer
 import platform
@@ -11,8 +12,8 @@ system = platform.system()
 def main():
     system = platform.system()
 
-    instance_path = r'Scenarios\Christofides\chr12a.dat'
-    solution_path = r'Scenarios\Christofides\solution\chr12a.sln'
+    instance_path = r'Scenarios\Christofides\chr20a.dat'
+    solution_path = r'Scenarios\Christofides\solution\chr20a.sln'
     
     if system == "Linux":
         instance_path = instance_path.replace("\\", "/")
@@ -38,38 +39,16 @@ def main():
     print(f"Optimal Score from QAPLIB: {opt_val}")
     print(f"Optimal Permutation from QAPLIB: {optimal_permutation}")
 
-    # 3. Inicjalizacja Optymalizatora
-    optimizer = ArtemisininOptimizer(
-        n_dim=n, 
-        flow_matrix=matrix_a, 
-        dist_matrix=matrix_b, 
-        pop_size=200, 
-        max_f=1000000,
-        optimum = opt_val
-    )
 
-    best_p, best_score, best_cost_history = optimizer.optimize()
+    # ================================
+    # BENCHMARK 
+    # ================================
 
-    print("\n--- Optimization Finished ---")
-    print(f"Best Score Found: {best_score}")
-    print(f"Best Permutation: {best_p}")
+    n_runs = 20
+    pop_size = 200
+    max_f = 1000000
 
-    gap = ((best_score - opt_val) / opt_val) * 100
-    print(f"Relative Error Gap: {gap:.2f}%")
-
-    if best_score <= opt_val:
-        print("Success! You found the optimal solution.")
-    else:
-        print(f"The algorithm was {gap:.2f}% away from the optimum.")
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(best_cost_history, label='Best Cost Over Iterations')
-    plt.xlabel('Ewaluacje')
-    plt.ylabel('Koszt (QAP)')
-    plt.title('Artemisinin Optimization')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    benchmark(n_runs, opt_val, n, matrix_a, matrix_b, pop_size=pop_size, max_f=max_f)
 
 
 if __name__ == "__main__":
