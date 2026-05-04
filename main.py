@@ -11,8 +11,8 @@ system = platform.system()
 def main():
     system = platform.system()
 
-    instance_path = r'Scenarios\Christofides\chr20a.dat'
-    solution_path = r'Scenarios\Christofides\solution\chr20a.sln'
+    instance_path = r'Scenarios\Christofides\chr12a.dat'
+    solution_path = r'Scenarios\Christofides\solution\chr12a.sln'
     
     if system == "Linux":
         instance_path = instance_path.replace("\\", "/")
@@ -36,6 +36,7 @@ def main():
 
     print(f"Instance Size (n): {n}")
     print(f"Optimal Score from QAPLIB: {opt_val}")
+    print(f"Optimal Permutation from QAPLIB: {optimal_permutation}")
 
     # 3. Inicjalizacja Optymalizatora
     optimizer = ArtemisininOptimizer(
@@ -43,7 +44,8 @@ def main():
         flow_matrix=matrix_a, 
         dist_matrix=matrix_b, 
         pop_size=200, 
-        max_f=1000000
+        max_f=1000000,
+        optimum = opt_val
     )
 
     best_p, best_score, best_cost_history = optimizer.optimize()
@@ -68,7 +70,6 @@ def main():
     plt.legend()
     plt.grid(True)
     plt.show()
-
 
 
 if __name__ == "__main__":

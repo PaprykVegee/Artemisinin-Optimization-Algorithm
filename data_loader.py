@@ -18,6 +18,6 @@ def load_solution(file_path):
     
     n = int(data[0])
     optimal = data[1]
-    solution = np.array(data[2 : n + 1], dtype=int)
+    solution = np.array(data[2 : n + 2], dtype=int)
     
     return n, optimal, solution

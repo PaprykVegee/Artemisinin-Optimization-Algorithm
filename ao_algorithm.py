@@ -11,7 +11,7 @@ class ArtemisininOptimizer:
     intensive local exploitation using the 2-opt strategy.
     """
 
-    def __init__(self, n_dim, flow_matrix, dist_matrix, pop_size=15, max_f=100000):
+    def __init__(self, n_dim, flow_matrix, dist_matrix, pop_size=15, max_f=100000, optimum=None):
         """
         HEADER: Algorithm Parameter Initialization
         -------------------------------------------
@@ -20,6 +20,7 @@ class ArtemisininOptimizer:
         :param dist_matrix: Matrix representing distances between locations (B).
         :param pop_size: Number of agents in the population.
         :param max_f: Computational budget (maximum number of fitness evaluations).
+        :param optimum: The known optimal value for the problem instance.
         """
         self.D = n_dim
         self.A = flow_matrix
@@ -27,11 +28,13 @@ class ArtemisininOptimizer:
         self.N = pop_size
         self.MaxF = max_f
         self.f = 0  # Evaluation counter
+        self.optimum = optimum
 
         # Initial population in continuous space [-1, 1]
         self.population = np.random.uniform(-1, 1, (self.N, self.D))
         self.fitness = np.full(self.N, float('inf'))
         self.best_agent = None
+        self.best_perm = None
         self.best_fitness = float('inf')
         self.best_cost_history = []
 
@@ -61,33 +64,32 @@ class ArtemisininOptimizer:
         by performing pairwise swaps. Logs global improvements to history.
         """
         p = list(permutation)
-        best_c = self.calculate_qap_fitness(p)
+        best_p = p.copy()
+        best_c = self.calculate_qap_fitness(best_p)
         improved = True
-        
+
         while improved:
             improved = False
             for i in range(self.D):
                 for j in range(i + 1, self.D):
                     if self.f >= self.MaxF:
-                        return p, best_c
-                    
-                    # Perform pairwise swap
+                        return best_p, best_c
+
+                    # test swap
                     p[i], p[j] = p[j], p[i]
                     curr_c = self.calculate_qap_fitness(p)
                     self.f += 1
-                    
+
                     if curr_c < best_c:
                         best_c = curr_c
+                        best_p = p.copy()
                         improved = True
-                        # Update global history for monotonic convergence visualization
-                        if best_c < self.best_fitness:
-                            self.best_fitness = best_c
-                            self.best_cost_history.append(self.best_fitness)
                     else:
-                        p[i], p[j] = p[j], p[i] # Revert swap if no improvement
-            if not improved:
-                break
-        return p, best_c
+                        p[i], p[j] = p[j], p[i]
+
+            p = best_p.copy()
+
+        return best_p, best_c
 
     def _map_back(self, p):
         """
@@ -118,6 +120,7 @@ class ArtemisininOptimizer:
             # Ensure a global leader is assigned to avoid NoneType errors
             if self.best_agent is None or f_ls < self.best_fitness:
                 self.best_fitness = f_ls
+                self.best_perm = p_ls.copy()
                 self.best_agent = self.population[i].copy()
                 self.best_cost_history.append(self.best_fitness)
 
@@ -136,7 +139,8 @@ class ArtemisininOptimizer:
         if self.best_agent is None:
             self.best_agent = self.population[0].copy()
             self.best_fitness = self.fitness[0]
-
+            self.best_perm = self.rov_mapping(self.population[0]).copy()
+            
         while self.f < self.MaxF:
             progress = self.f / self.MaxF
             # Dynamic WRAO parameters
@@ -166,7 +170,12 @@ class ArtemisininOptimizer:
                     
                     if f_ls < self.best_fitness:
                         self.best_fitness = f_ls
+                        self.best_perm = p_ls.copy()
                         self.best_agent = self.population[i].copy()
                         self.best_cost_history.append(self.best_fitness)
             
-        return self.rov_mapping(self.best_agent), self.best_fitness, self.best_cost_history
+            if self.optimum is not None and self.best_fitness <= self.optimum:
+                print(f"Optimal solution found with fitness {self.best_fitness} at evaluation {self.f}.")
+                break
+
+        return np.array(self.best_perm) + 1, self.best_fitness, self.best_cost_history
