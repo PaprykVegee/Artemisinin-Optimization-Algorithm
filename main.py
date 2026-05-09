@@ -11,9 +11,8 @@ system = platform.system()
 
 def main():
     system = platform.system()
-
-    instance_path = r'Scenarios\Christofides\chr25a.dat'
-    solution_path = r'Scenarios\Christofides\solution\chr25a.sln'
+    instance_path = r'Scenarios\Christofides\chr20a.dat'
+    solution_path = r'Scenarios\Christofides\solution\chr20a.sln'
     
     if system == "Linux":
         instance_path = instance_path.replace("\\", "/")
@@ -45,10 +44,10 @@ def main():
     # ================================
 
     n_runs = 50
-    pop_size = 1500
-    max_f = 2500000
+    pop_size = 200
+    max_f = 1000000
 
-    benchmark(n_runs, opt_val, n, matrix_a, matrix_b, pop_size=pop_size, max_f=max_f)
+    benchmark(n_runs, opt_val, n, matrix_a, matrix_b, pop_size=pop_size, max_f=max_f, version="AO", portions=0.5)
 
 
 if __name__ == "__main__":

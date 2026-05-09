@@ -1,8 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from ao_algorithm import ArtemisininOptimizer
+from wrao_algorithm import WeightedArtemisininOptimizer
+import time
 
-def benchmark(n_runs, opt_val, n=None, matrix_a=None, matrix_b=None, pop_size=200, max_f=1000000):
+
+def benchmark(n_runs, opt_val, n=None, matrix_a=None, matrix_b=None, pop_size=200, max_f=1000000, version="AO", portions=0.1):
     all_scores = []
     all_gaps = []
     all_perms = []
@@ -15,17 +18,32 @@ def benchmark(n_runs, opt_val, n=None, matrix_a=None, matrix_b=None, pop_size=20
     # ================================
     # MULTI-RUN LOOP
     # ================================
+    print(f"\nStarting benchmark with {n_runs} runs, version: {version}")
+
     for run in range(n_runs):
+        start_time = time.perf_counter()
         print(f"\n========== RUN {run+1}/{n_runs} ==========")
 
-        optimizer = ArtemisininOptimizer(
-            n_dim=n,
-            flow_matrix=matrix_a,
-            dist_matrix=matrix_b,
-            pop_size=200,
-            max_f=1000000,
-            optimum=opt_val
-        )
+        if version == "AO":
+            optimizer = ArtemisininOptimizer(
+                n_dim=n,
+                flow_matrix=matrix_a,
+                dist_matrix=matrix_b,
+                pop_size=pop_size,
+                max_f=max_f,
+                optimum=opt_val
+            )
+
+        elif version == "WRAO":
+            optimizer = WeightedArtemisininOptimizer(
+                n_dim=n,
+                flow_matrix=matrix_a,
+                dist_matrix=matrix_b,
+                pop_size=pop_size,
+                max_f=max_f,
+                optimum=opt_val,
+                ranking_portion=portions
+            )
 
         best_p, best_score, best_cost_history = optimizer.optimize()
 
@@ -43,6 +61,10 @@ def benchmark(n_runs, opt_val, n=None, matrix_a=None, matrix_b=None, pop_size=20
             global_best_score = best_score
             global_best_perm = best_p
             global_best_history = best_cost_history
+
+        end_time = time.perf_counter()
+        duration = end_time - start_time
+        print(f"Run Duration: {duration:.2f} seconds")
 
     # ================================
     # FINAL STATISTICS
