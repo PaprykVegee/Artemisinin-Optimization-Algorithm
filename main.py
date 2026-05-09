@@ -1,7 +1,6 @@
 import numpy as np
 from benchmark import benchmark
 from data_loader import load_instance, load_solution
-from ao_algorithm import ArtemisininOptimizer
 import platform
 import matplotlib.pyplot as plt
 
@@ -47,7 +46,19 @@ def main():
     pop_size = 200
     max_f = 1000000
 
-    benchmark(n_runs, opt_val, n, matrix_a, matrix_b, pop_size=pop_size, max_f=max_f, version="AO", portions=0.5)
+    benchmark(
+        n_runs,
+        opt_val, 
+        n, 
+        matrix_a, 
+        matrix_b, 
+        pop_size=pop_size, 
+        max_f=max_f, 
+        version="PMX", 
+        portions=0.5, 
+        injection_period=20, 
+        injection_rate=0.5
+        )
 
 
 if __name__ == "__main__":

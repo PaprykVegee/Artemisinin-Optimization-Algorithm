@@ -3,9 +3,9 @@ import numpy as np
 from ao_algorithm import ArtemisininOptimizer
 from wrao_algorithm import WeightedArtemisininOptimizer
 import time
+from ao_algorithm_pmx import PMXOptimizer
 
-
-def benchmark(n_runs, opt_val, n=None, matrix_a=None, matrix_b=None, pop_size=200, max_f=1000000, version="AO", portions=0.1):
+def benchmark(n_runs, opt_val, n=None, matrix_a=None, matrix_b=None, pop_size=200, max_f=1000000, version="AO", portions=0.1, injection_period=10, injection_rate=0.3):
     all_scores = []
     all_gaps = []
     all_perms = []
@@ -43,6 +43,18 @@ def benchmark(n_runs, opt_val, n=None, matrix_a=None, matrix_b=None, pop_size=20
                 max_f=max_f,
                 optimum=opt_val,
                 ranking_portion=portions
+            )
+        elif version == "PMX":
+            
+            optimizer = PMXOptimizer(
+                n_dim=n,
+                flow_matrix=matrix_a,
+                dist_matrix=matrix_b,
+                pop_size=pop_size,
+                max_f=max_f,
+                optimum=opt_val,
+                injection_period=injection_period,
+                injection_rate=injection_rate
             )
 
         best_p, best_score, best_cost_history = optimizer.optimize()
