@@ -6,12 +6,14 @@ import matplotlib.pyplot as plt
 
 system = platform.system()
 
-
+#VERSION = "AO"
+#VERSION = "WRAO"
+VERSION = "PMX"
 
 def main():
     system = platform.system()
-    instance_path = r'Scenarios\Christofides\chr20a.dat'
-    solution_path = r'Scenarios\Christofides\solution\chr20a.sln'
+    instance_path = r'Scenarios\Eschermann\esc128.dat'
+    solution_path = r'Scenarios\Eschermann\solution\esc128.sln'
     
     if system == "Linux":
         instance_path = instance_path.replace("\\", "/")
@@ -43,8 +45,8 @@ def main():
     # ================================
 
     n_runs = 50
-    pop_size = 200
-    max_f = 1000000
+    pop_size = 5000
+    max_f = 2000000
 
     benchmark(
         n_runs,
@@ -54,10 +56,10 @@ def main():
         matrix_b, 
         pop_size=pop_size, 
         max_f=max_f, 
-        version="PMX", 
-        portions=0.5, 
-        injection_period=20, 
-        injection_rate=0.5
+        version=VERSION, 
+        portions=0.5,        #WRAC
+        injection_period=20, #PMX
+        injection_rate=0.5   #PMX
         )
 
 
