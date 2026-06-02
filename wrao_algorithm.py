@@ -323,105 +323,110 @@ class WeightedArtemisininOptimizer:
                 )
 
     def optimize(self):
-        """
-        HEADER: Main Optimization Loop (WRAO + Local Search)
-        -----------------------------------------------
-        Description: Iteratively executes the algorithm, combining "Shaking"
-        (perturbation to escape local minima) with local intensification.
+            """
+            HEADER: Main Optimization Loop (WRAO + Local Search)
+            -----------------------------------------------
+            Description: Iteratively executes the algorithm, combining "Shaking"
+            (perturbation to escape local minima) with local intensification.
 
-        :return: (best_permutation, best_cost, convergence_history)
-        """
+            :return: (best_permutation, best_cost, convergence_history, population_snapshots)
+            """
 
-        self.initialize()
+            self.initialize()
 
-        # Fail-safe to ensure best_agent exists
-        if self.best_agent is None:
+            # Słownik na migawki populacji permutacji
+            population_snapshots = {}
 
-            self.best_agent = self.population[0].copy()
+            # Fail-safe to ensure best_agent exists
+            if self.best_agent is None:
+                self.best_agent = self.population[0].copy()
+                self.best_fitness = self.fitness[0]
+                self.best_perm = self.rov_mapping(self.population[0]).copy()
 
-            self.best_fitness = self.fitness[0]
+            # 1. Zrzut na POCZĄTKU algorytmu (zmapowany na permutacje + 1 dla formatu 1-indexed)
+            population_snapshots["start"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
 
-            self.best_perm = self.rov_mapping(
-                self.population[0]
-            ).copy()
+            # Definiujemy punkty kontrolne dla parametrów MaxF (środek 1 i środek 2)
+            midpoint_1 = self.MaxF * 0.33
+            midpoint_2 = self.MaxF * 0.66
+            
+            captured_mid1 = False
+            captured_mid2 = False
 
-        while self.f < self.MaxF:
+            while self.f < self.MaxF:
+                progress = self.f / self.MaxF
 
-            progress = self.f / self.MaxF
+                # Dynamic WRAO parameters
+                K = 0.4 * (1 - progress)
+                c = 2.0 * np.exp(-(progress ** 2))
 
-            # Dynamic WRAO parameters
-            K = 0.4 * (1 - progress)
+                # Weighted ranking leader
+                ranking_leader = self._calculate_weighted_leader()
 
-            c = 2.0 * np.exp(-(progress ** 2))
+                # --- PRZECHWYTYWANIE POPULACJI W TRAKCIE (ŚRODEK 1 i 2) ---
+                if not captured_mid1 and self.f >= midpoint_1:
+                    population_snapshots["mid_1"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
+                    captured_mid1 = True
+                    
+                if not captured_mid2 and self.f >= midpoint_2:
+                    population_snapshots["mid_2"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
+                    captured_mid2 = True
 
-            # Weighted ranking leader
-            ranking_leader = self._calculate_weighted_leader()
+                for i in range(self.N):
 
-            for i in range(self.N):
+                    if self.f >= self.MaxF:
+                        break
 
-                if self.f >= self.MaxF:
+                    candidate_pos = self.population[i].copy()
+
+                    for j in range(self.D):
+                        if np.random.rand() < K:
+                            # Elimination phase / Shaking
+                            # (random noise injection)
+                            candidate_pos[j] = (
+                                ranking_leader[j]
+                                + np.random.normal(0, 0.4)
+                            )
+                        else:
+                            # Movement towards weighted ranking leader
+                            # (WRAO trajectory)
+                            candidate_pos[j] = (
+                                c * ranking_leader[j]
+                                + (1 - c) * candidate_pos[j]
+                            )
+
+                    # Refine new position with Local Search
+                    perm_cand = self.rov_mapping(candidate_pos)
+                    p_ls, f_ls = self._full_2opt(perm_cand)
+
+                    # Update agent if a better local minimum is discovered
+                    if f_ls < self.fitness[i]:
+                        self.fitness[i] = f_ls
+                        self.population[i] = self._map_back(p_ls)
+
+                        if f_ls < self.best_fitness:
+                            self.best_fitness = f_ls
+                            self.best_perm = p_ls.copy()
+                            self.best_agent = self.population[i].copy()
+                            self.best_cost_history.append(self.best_fitness)
+
+                if (self.optimum is not None and self.best_fitness <= self.optimum):
+                    print(f"Optimal solution found with fitness {self.best_fitness} at evaluation {self.f}.")
                     break
 
-                candidate_pos = self.population[i].copy()
+            # Zabezpieczenie na wypadek przedwczesnego wyjścia (np. znalezienia optimum przed 33% lub 66%)
+            if not captured_mid1:
+                population_snapshots["mid_1"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
+            if not captured_mid2:
+                population_snapshots["mid_2"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
 
-                for j in range(self.D):
+            # 4. Zrzut na KONIEC algorytmu
+            population_snapshots["end"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
 
-                    if np.random.rand() < K:
-
-                        # Elimination phase / Shaking
-                        # (random noise injection)
-                        candidate_pos[j] = (
-                            ranking_leader[j]
-                            + np.random.normal(0, 0.4)
-                        )
-
-                    else:
-
-                        # Movement towards weighted ranking leader
-                        # (WRAO trajectory)
-                        candidate_pos[j] = (
-                            c * ranking_leader[j]
-                            + (1 - c) * candidate_pos[j]
-                        )
-
-                # Refine new position with Local Search
-                perm_cand = self.rov_mapping(candidate_pos)
-
-                p_ls, f_ls = self._full_2opt(perm_cand)
-
-                # Update agent if a better local minimum is discovered
-                if f_ls < self.fitness[i]:
-
-                    self.fitness[i] = f_ls
-
-                    self.population[i] = self._map_back(p_ls)
-
-                    if f_ls < self.best_fitness:
-
-                        self.best_fitness = f_ls
-
-                        self.best_perm = p_ls.copy()
-
-                        self.best_agent = self.population[i].copy()
-
-                        self.best_cost_history.append(
-                            self.best_fitness
-                        )
-
-            if (
-                self.optimum is not None
-                and self.best_fitness <= self.optimum
-            ):
-
-                print(
-                    f"Optimal solution found with fitness "
-                    f"{self.best_fitness} at evaluation {self.f}."
-                )
-
-                break
-
-        return (
-            np.array(self.best_perm) + 1,
-            self.best_fitness,
-            self.best_cost_history
-        )
+            # Zwracamy spójny format 4 obiektów
+            return (
+                np.array(self.best_perm) + 1,
+                self.best_fitness,
+                self.best_cost_history,
+                population_snapshots
+            )

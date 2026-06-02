@@ -339,98 +339,122 @@ class PMXOptimizer:
                 self.best_cost_history.append(self.best_fitness)
 
     def optimize(self):
-        """
-        HEADER: Main Optimization Loop
-        -----------------------------------------------
-        Description:
-        Executes iterative AO optimization enhanced with:
-        - shaking,
-        - local search,
-        - PMX-like elite injection.
-        """
+            """
+            HEADER: Main Optimization Loop
+            -----------------------------------------------
+            Description:
+            Executes iterative AO optimization enhanced with:
+            - shaking,
+            - local search,
+            - PMX-like elite injection.
 
-        self.initialize()
+            :return: (best_permutation, best_cost, convergence_history, population_snapshots)
+            """
 
-        # Fail-safe
-        if self.best_agent is None:
-            self.best_agent = self.population[0].copy()
-            self.best_fitness = self.fitness[0]
-            self.best_perm = self.rov_mapping(self.population[0]).copy()
+            self.initialize()
 
-        iteration = 0
+            # Słownik na migawki populacji permutacji
+            population_snapshots = {}
 
-        while self.f < self.MaxF:
+            # Fail-safe
+            if self.best_agent is None:
+                self.best_agent = self.population[0].copy()
+                self.best_fitness = self.fitness[0]
+                self.best_perm = self.rov_mapping(self.population[0]).copy()
 
-            iteration += 1
-            progress = self.f / self.MaxF
+            # 1. Zrzut na POCZĄTKU algorytmu (zmapowany na permutacje + 1 dla formatu 1-indexed)
+            population_snapshots["start"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
 
-            # Dynamic WRAO parameters
-            K = 0.4 * (1 - progress)
-            c = 2.0 * np.exp(-(progress ** 2))
+            # Definiujemy punkty kontrolne dla parametrów MaxF (środek 1 i środek 2)
+            midpoint_1 = self.MaxF * 0.33
+            midpoint_2 = self.MaxF * 0.66
+            
+            captured_mid1 = False
+            captured_mid2 = False
 
-            for i in range(self.N):
+            iteration = 0
 
-                if self.f >= self.MaxF:
+            while self.f < self.MaxF:
+
+                iteration += 1
+                progress = self.f / self.MaxF
+
+                # Dynamic WRAO parameters
+                K = 0.4 * (1 - progress)
+                c = 2.0 * np.exp(-(progress ** 2))
+
+                # --- PRZECHWYTYWANIE POPULACJI W TRAKCIE (ŚRODEK 1 i 2) ---
+                if not captured_mid1 and self.f >= midpoint_1:
+                    population_snapshots["mid_1"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
+                    captured_mid1 = True
+                    
+                if not captured_mid2 and self.f >= midpoint_2:
+                    population_snapshots["mid_2"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
+                    captured_mid2 = True
+
+                for i in range(self.N):
+
+                    if self.f >= self.MaxF:
+                        break
+
+                    candidate_pos = self.population[i].copy()
+
+                    for j in range(self.D):
+                        if np.random.rand() < K:
+                            # Elimination phase / Shaking
+                            candidate_pos[j] = (self.best_agent[j] + np.random.normal(0, 0.4))
+                        else:
+                            # Movement towards leader
+                            candidate_pos[j] = (c * self.best_agent[j] + (1 - c) * candidate_pos[j])
+
+                    # ============================================================
+                    # CONVERT TO PERMUTATION
+                    # ============================================================
+                    perm_cand = self.rov_mapping(candidate_pos)
+
+                    # ============================================================
+                    # PMX-LIKE ELITE INJECTION
+                    # ============================================================
+                    if (iteration % self.injection_period == 0 and self.best_perm is not None):
+                        # Measure Hamming distance
+                        hamming_dist = hamming_distance_numba(perm_cand, self.best_perm)
+
+                        # Determine injection size
+                        injection_size = max(1, int(hamming_dist * self.injection_rate))
+
+                        # Inject elite structure
+                        perm_cand = elite_injection_numba(perm_cand, self.best_perm, injection_size)
+
+                    # ============================================================
+                    # LOCAL REFINEMENT
+                    # ============================================================
+                    p_ls, f_ls = self._full_2opt(perm_cand)
+
+                    # ============================================================
+                    # UPDATE POPULATION
+                    # ============================================================
+                    if f_ls < self.fitness[i]:
+                        self.fitness[i] = f_ls
+                        self.population[i] = self._map_back(p_ls)
+
+                        if f_ls < self.best_fitness:
+                            self.best_fitness = f_ls
+                            self.best_perm = p_ls.copy()
+                            self.best_agent = self.population[i].copy()
+                            self.best_cost_history.append(self.best_fitness)
+
+                if (self.optimum is not None and self.best_fitness <= self.optimum):
+                    print(f"Optimal solution found with fitness {self.best_fitness}at evaluation {self.f}.")
                     break
 
-                candidate_pos = self.population[i].copy()
+            # Zabezpieczenie na wypadek przedwczesnego zatrzymania (np. znalezienia optimum)
+            if not captured_mid1:
+                population_snapshots["mid_1"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
+            if not captured_mid2:
+                population_snapshots["mid_2"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
 
-                for j in range(self.D):
-                    if np.random.rand() < K:
+            # 4. Zrzut na KONIEC algorytmu
+            population_snapshots["end"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
 
-                        # Elimination phase / Shaking
-                        candidate_pos[j] = (self.best_agent[j] + np.random.normal(0, 0.4))
-
-                    else:
-                        # Movement towards leader
-                        candidate_pos[j] = (c * self.best_agent[j] + (1 - c) * candidate_pos[j])
-
-                # ============================================================
-                # CONVERT TO PERMUTATION
-                # ============================================================
-
-                perm_cand = self.rov_mapping(candidate_pos)
-
-                # ============================================================
-                # PMX-LIKE ELITE INJECTION
-                # ============================================================
-
-                if (iteration % self.injection_period == 0 and self.best_perm is not None):
-
-                    # Measure Hamming distance
-                    hamming_dist = hamming_distance_numba(perm_cand, self.best_perm)
-
-                    # Determine injection size
-                    injection_size = max(1, int(hamming_dist * self.injection_rate))
-
-                    # Inject elite structure
-                    perm_cand = elite_injection_numba(perm_cand, self.best_perm, injection_size)
-
-                # ============================================================
-                # LOCAL REFINEMENT
-                # ============================================================
-
-                p_ls, f_ls = self._full_2opt(perm_cand)
-
-                # ============================================================
-                # UPDATE POPULATION
-                # ============================================================
-
-                if f_ls < self.fitness[i]:
-                    self.fitness[i] = f_ls
-                    self.population[i] = self._map_back(p_ls)
-
-                    if f_ls < self.best_fitness:
-
-                        self.best_fitness = f_ls
-                        self.best_perm = p_ls.copy()
-                        self.best_agent = self.population[i].copy()
-                        self.best_cost_history.append(
-                            self.best_fitness
-                        )
-
-            if (self.optimum is not None and self.best_fitness <= self.optimum):
-                print(f"Optimal solution found with fitness {self.best_fitness}at evaluation {self.f}.")
-                break
-
-        return np.array(self.best_perm) + 1,self.best_fitness,self.best_cost_history
+            # Zwracamy dokładnie ten sam zestaw 4 elementów
+            return np.array(self.best_perm) + 1, self.best_fitness, self.best_cost_history, population_snapshots
