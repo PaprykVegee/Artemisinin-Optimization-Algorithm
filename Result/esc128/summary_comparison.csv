@@ -1,0 +1,4 @@
+Version,Best_GAP,Mean_GAP,Worst_GAP,Std_GAP,Best_Score,Optimum_Hits,Total_Time_Sec
+PMX,0.0,0.0,0.0,0.0,64,30/30,700.41
+WRAO,0.0,0.0,0.0,0.0,64,30/30,700.05
+AO,0.0,0.0,0.0,0.0,64,30/30,702.61

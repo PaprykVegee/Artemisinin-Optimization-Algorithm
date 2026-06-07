@@ -1,0 +1,14 @@
+REPORT FOR INSTANCE: chr12a (Size: 12, Optimal Score: 9552.0)
+======================================================================
+
+Version  Best_GAP  Mean_GAP  Worst_GAP  Std_GAP  Best_Score Optimum_Hits  Total_Time_Sec
+    PMX       0.0       0.0        0.0      0.0        9552        30/30           13.96
+   WRAO       0.0       0.0        0.0      0.0        9552        30/30           13.59
+     AO       0.0       0.0        0.0      0.0        9552        30/30           14.00
+
+======================================================================
+BEST PERMUTATIONS FOUND BY EACH METHOD:
+----------------------------------------
+PMX   Best Permutation: [ 7  5 12  2  1  3  9 11 10  6  8  4]
+WRAO  Best Permutation: [ 7  5 12  2  1  3  9 11 10  6  8  4]
+AO    Best Permutation: [ 7  5 12  2  1  3  9 11 10  6  8  4]

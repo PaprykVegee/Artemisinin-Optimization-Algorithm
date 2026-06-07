@@ -1,0 +1,14 @@
+REPORT FOR INSTANCE: had12 (Size: 12, Optimal Score: 1652.0)
+======================================================================
+
+Version  Best_GAP  Mean_GAP  Worst_GAP  Std_GAP  Best_Score Optimum_Hits  Total_Time_Sec
+    PMX       0.0       0.0        0.0      0.0        1652        30/30           14.67
+   WRAO       0.0       0.0        0.0      0.0        1652        30/30           14.52
+     AO       0.0       0.0        0.0      0.0        1652        30/30           14.75
+
+======================================================================
+BEST PERMUTATIONS FOUND BY EACH METHOD:
+----------------------------------------
+PMX   Best Permutation: [ 3 10 11  2 12  5  7  6  8  1  4  9]
+WRAO  Best Permutation: [ 3 10 11  2 12  5  7  6  8  1  4  9]
+AO    Best Permutation: [ 3 10 11  2 12  5  6  7  8  1  4  9]

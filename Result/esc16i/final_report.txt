@@ -1,0 +1,14 @@
+REPORT FOR INSTANCE: esc16i (Size: 16, Optimal Score: 14.0)
+======================================================================
+
+Version  Best_GAP  Mean_GAP  Worst_GAP  Std_GAP  Best_Score Optimum_Hits  Total_Time_Sec
+    PMX       0.0       0.0        0.0      0.0          14        30/30           18.77
+   WRAO       0.0       0.0        0.0      0.0          14        30/30           18.37
+     AO       0.0       0.0        0.0      0.0          14        30/30           18.74
+
+======================================================================
+BEST PERMUTATIONS FOUND BY EACH METHOD:
+----------------------------------------
+PMX   Best Permutation: [10  2  6  8  7 15 16 12  4  9  3  5 14 11 13  1]
+WRAO  Best Permutation: [14 10  9 11 12  4  2  6  8  5 13  1  3 16 15  7]
+AO    Best Permutation: [ 9  1  2 10 12 16 14 15 13  5  7  6  4 11  8  3]

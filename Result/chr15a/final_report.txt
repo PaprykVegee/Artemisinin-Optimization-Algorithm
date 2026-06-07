@@ -1,0 +1,14 @@
+REPORT FOR INSTANCE: chr15a (Size: 15, Optimal Score: 9896.0)
+======================================================================
+
+Version  Best_GAP  Mean_GAP  Worst_GAP  Std_GAP  Best_Score Optimum_Hits  Total_Time_Sec
+    PMX       0.0  0.176502   0.828618 0.252260        9896        19/30           16.82
+   WRAO       0.0  0.082862   0.828618 0.248585        9896        27/30           17.03
+     AO       0.0  0.108461   0.828618 0.209283        9896        23/30           17.05
+
+======================================================================
+BEST PERMUTATIONS FOUND BY EACH METHOD:
+----------------------------------------
+PMX   Best Permutation: [ 5 10  8 13 12 11 14  2  4  6  7 15  3  1  9]
+WRAO  Best Permutation: [ 5 10  8 13 12 11 14  2  4  6  7 15  3  1  9]
+AO    Best Permutation: [ 5 10  8 13 12 11 14  2  4  6  7 15  3  1  9]

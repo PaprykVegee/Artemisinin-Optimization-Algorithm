@@ -1,0 +1,14 @@
+REPORT FOR INSTANCE: had20 (Size: 20, Optimal Score: 6922.0)
+======================================================================
+
+Version  Best_GAP  Mean_GAP  Worst_GAP  Std_GAP  Best_Score Optimum_Hits  Total_Time_Sec
+    PMX       0.0       0.0        0.0      0.0        6922        30/30           25.44
+   WRAO       0.0       0.0        0.0      0.0        6922        30/30           25.96
+     AO       0.0       0.0        0.0      0.0        6922        30/30           25.45
+
+======================================================================
+BEST PERMUTATIONS FOUND BY EACH METHOD:
+----------------------------------------
+PMX   Best Permutation: [ 8 15 16 14 19  6  7 17  1 12 10 11  5 20  2  3  4  9 18 13]
+WRAO  Best Permutation: [ 8 15  1 14 19  6  7 17 16 12 10 11  5 20  2  3  4  9 18 13]
+AO    Best Permutation: [ 8 15 16 14 19  6  7 17  1 12 10 11  5 20  2  3  4  9 18 13]

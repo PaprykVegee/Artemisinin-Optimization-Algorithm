@@ -1,0 +1,14 @@
+REPORT FOR INSTANCE: lipa20b (Size: 20, Optimal Score: 27076.0)
+======================================================================
+
+Version  Best_GAP  Mean_GAP  Worst_GAP  Std_GAP  Best_Score Optimum_Hits  Total_Time_Sec
+    PMX       0.0       0.0        0.0      0.0       27076        30/30           24.99
+   WRAO       0.0       0.0        0.0      0.0       27076        30/30           25.03
+     AO       0.0       0.0        0.0      0.0       27076        30/30           24.38
+
+======================================================================
+BEST PERMUTATIONS FOUND BY EACH METHOD:
+----------------------------------------
+PMX   Best Permutation: [ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20]
+WRAO  Best Permutation: [ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20]
+AO    Best Permutation: [ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20]
