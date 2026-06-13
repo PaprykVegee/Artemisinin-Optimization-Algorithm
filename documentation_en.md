@@ -20,12 +20,12 @@ The classic AO algorithm is designed for global optimization in continuous searc
 To ensure full clarity, standardized mathematical notation and corresponding programming variables are used throughout the documentation and algorithm descriptions:
 
 * $n$ (`n_dim` / `D`) – Problem dimension (number of objects and number of available locations).
-* $A$ (`flow_matrix`) – Flow matrix of size $n \times n$. Element $A_{i,j}$ defines the flow intensity between object $i$ and object $j$.
-* $B$ (`distance_matrix`) – Distance matrix of size $n \times n$. Element $B_{k,l}$ defines the physical distance between location $k$ and location $l$.
-* $\pi$ (`permutation`) – Discrete permutation vector (QAP solution) of length $n$, where $\pi[i] = k$ denotes the assignment of object $i$ to location $k$.
-* $X_i$ (`population[i]`) – Continuous position vector of the $i$-th population agent in the search space. $X_{i,d} \in [-1, 1]$ represents the coordinate in dimension $d$.
-* $N$ (`pop_size`) – Total number of search agents (population size).
-* $MaxF$ (`max_f`) – Maximum computational budget defined as the number of allowed objective function evaluations.
+* $A$ (`flow_matrix`) – Flow matrix of size $n \times n$.
+* $B$ (`distance_matrix`) – Distance matrix of size $n \times n$.
+* $\pi$ (`permutation`) – Discrete permutation vector.
+* $X_i$ (`population[i]`) – Continuous position vector.
+* $N$ (`pop_size`) – Total number of search agents.
+* $MaxF$ (`max_f`) – Maximum computational budget.
 * $f$ (`self.f`) – Current counter of executed cost function evaluations.
 * $t$ – Current algorithm iteration.
 * $T$ – Maximum intended number of iterations.
@@ -35,54 +35,64 @@ To ensure full clarity, standardized mathematical notation and corresponding pro
 ## 3. Mathematical Analysis and Software Architecture
 
 ### 3.1. Universal Utility Functions and Optimizations (Numba Core)
-All critical mathematical and algorithmic operations have been delegated to functions compiled in JIT mode (`@njit(cache=True)`) using the Numba library. This allows for performance close to C.
 
 #### 1. Continuous-to-Discrete Mapping: `rov_mapping_numba(continuous_vector)`
-Transforms a continuous vector $X_i \in \mathbb{R}^n$ into a valid combinatorial permutation $\pi$. It assigns ranks (indices) to the vector elements based on their sorted values:
-$$\pi = \text{argsort}(X_i)$$
 
-#### 2. QAP Objective Function Calculation: `calculate_qap_fitness_numba(A, B, permutation)`
-Determines the total assignment cost based on the Frobenius product of the input matrices:
-$$f(\pi) = \sum_{i=1}^{n} \sum_{j=1}^{n} A_{i,j} \cdot B_{\pi[i], \pi[j]}$$
+$$
+\pi = \text{argsort}(X_i)
+$$
 
-#### 3. Reverse Mapping: `map_back_numba(permutation)`
-Following local optimization operations, it is necessary to synchronize the continuous position $X_i$ with the improved permutation $\pi$. The transformation maps element positions to evenly distributed values in the range $[-1, 1]$:
-$$X_{i, \pi[k]} = -1.0 + \frac{2.0 \cdot k}{n - 1}, \quad \text{for } k = 0, 1, \dots, n-1$$
+#### 2. QAP Objective Function Calculation
 
-#### 4. Local Search Algorithm: `full_2opt_numba(permutation, A, B, current_f, max_f)`
-A local search algorithm with a *first-improvement* criterion. It generates the solution neighborhood through systematic pairwise swaps. 
+$$
+f(\pi) = \sum_{i=1}^{n} \sum_{j=1}^{n} A_{i,j} \cdot B_{\pi[i], \pi[j]}
+$$
 
-For each pair $(i, j)$, where $1 \le i < j \le n$, a candidate permutation $\pi'$ is constructed by swapping assignments $\pi[i]$ and $\pi[j]$. The change is accepted immediately if:
-$$f(\pi') < f(\pi)$$
-The process repeats cyclically until no improvement is found in a full pass (local minimum reached) or $current\_f \ge max\_f$.
+#### 3. Reverse Mapping
 
----
+$$
+X_{i, \pi[k]} = -1.0 + \frac{2.0 \cdot k}{n - 1}
+$$
+
+#### 4. Local Search Algorithm
+
+$$
+f(\pi') < f(\pi)
+$$
+
+Stopping condition:
+
+$$
+\text{current\_f} \ge \text{max\_f}
+$$
 
 ### 3.2. Implementation 1: Standard Artemisinin Optimizer (AO)
-*Source file: `ao_algorithm.py`*
 
-The AO algorithm relies on dynamically switching between a shaking phase (global exploration) and a leader-following phase (exploitation).
+#### Dynamic Adaptive Parameters
 
-#### Dynamic Adaptive Parameters:
-In each iteration, two key parameters controlling the movement trajectory are determined:
-1. **Component Mutation Probability ($K$):**
-   $$K = 1.0 - \left(\frac{f}{MaxF}\right)^2$$
-2. **Convergence Step Coefficient ($c$):**
-   $$c = 2.0 \cdot \left(1.0 - \frac{f}{MaxF}\right)$$
+$$
+K = 1.0 - \left(\frac{f}{MaxF}\right)^2
+$$
 
-#### Mathematical Position Update Model:
-For each agent $i$ in the population, a value $r_1 \in [0, 1]$ is sampled. The movement strategy choice depends on the evaluation counter state:
+$$
+c = 2.0 \cdot \left(1.0 - \frac{f}{MaxF}\right)
+$$
 
-* **Phase 1: Shaking (When $r_1 > 0.5$):**
-    For each dimension $d \in \{1, \dots, n\}$, if a random value $r_2 < K$, the agent's position is dispersed around a random individual from the population ($X_{rand}$) using a normal distribution $\mathcal{N}(0,1)$:
-    $$X_{i,d}^{t+1} = X_{rand,d}^{t} + \mathcal{N}(0, 1) \cdot \left(X_{rand,d}^{t} - X_{i,d}^{t}\right)$$
+#### Mathematical Position Update Model
 
-* **Phase 2: Move towards leader (When $r_1 \le 0.5$):**
-    The agent moves toward the current best global solution ($X_{best}$):
-    $$X_{i,d}^{t+1} = X_{i,d}^{t} + c \cdot r_3 \cdot \left(X_{best,d}^{t} - X_{i,d}^{t}\right)$$
-    where $r_3 \in [0, 1]$ is a uniform random variable.
+**Phase 1: Shaking**
 
-# Block schemat:
+$$
+X_{i,d}^{t+1} = X_{rand,d}^{t} + \mathcal{N}(0, 1) \cdot \left(X_{rand,d}^{t} - X_{i,d}^{t}\right)
+$$
+
+**Phase 2: Move towards leader**
+
+$$
+X_{i,d}^{t+1} = X_{i,d}^{t} + c \cdot r_3 \cdot \left(X_{best,d}^{t} - X_{i,d}^{t}\right)
+$$
+
+### Block Diagram
 
 ```mermaid
 graph TD
@@ -94,11 +104,11 @@ graph TD
     F --> G[Update best solution]
     G --> C
     C --> H[Main Loop: f < MaxF]
-    
+
     H --> I{f >= MaxF?}
     I -- Yes --> J([End: Return result])
     I -- No --> K[Update parameters K and c]
-    
+
     K --> L{For each agent}
     L --> M[Update position: Exploration / Exploitation]
     M --> N[ROV Mapping]
@@ -111,62 +121,147 @@ graph TD
 ```
 
 ### 3.3. Implementation 2: Weighted Artemisinin Optimizer (WRAO)
-*Source file: `wrao_algorithm.py`*
 
-The WRAO variant modifies the second phase. Instead of unambiguous attraction to a single point $X_{best}$, agents move toward a virtual center of gravity determined by the population elite.
+$$
+w_m = M - m + 1
+$$
 
-#### Mathematical Model for Determining the Weighted Leader:
-1. The population is sorted in ascending order by cost function values.
-2. An elite subpopulation of size $M = \lceil \text{ranking\_portion} \cdot N \rceil$ is selected.
-3. For each selected individual $m \in \{1, \dots, M\}$, a weight $w_m$ is determined based on the ranking position (lower cost, higher weight):
-   $$w_m = M - m + 1$$
-4. The virtual position of the weighted leader $X_{weighted}$ in each dimension $d$ is calculated as:
-   $$X_{weighted, d} = \frac{\sum_{m=1}^{M} w_m \cdot X_{m, d}}{\sum_{m=1}^{M} w_m}$$
+$$
+X_{weighted,d} =
+\frac{\sum_{m=1}^{M} w_m \cdot X_{m,d}}
+{\sum_{m=1}^{M} w_m}
+$$
 
-In the Phase 2 movement equation, the $X_{best}$ vector is replaced by the consolidated $X_{weighted}$ vector:
-$$X_{i,d}^{t+1} = X_{i,d}^{t} + c \cdot r_3 \cdot \left(X_{weighted,d} - X_{i,d}^{t}\right)$$
+$$
+X_{i,d}^{t+1} =
+X_{i,d}^{t} + c \cdot r_3 \cdot (X_{weighted,d} - X_{i,d}^{t})
+$$
 
----
+### Block Diagram
+
+```mermaid
+graph TD
+    A([Start: WRAO Initialization]) --> B[Initialize continuous population and parameters]
+    B --> C{For each agent}
+    
+    C -- Next --> D[ROV Mapping: Continuous -> Discrete]
+    D --> E[Full 2-opt: Local Search]
+    E --> F[Map Back: Discrete -> Continuous]
+    F --> G[Evaluate fitness and update Global Best]
+    G --> C
+    
+    C -- Done --> H[Main Loop: f < MaxF]
+
+    H --> I{f >= MaxF or Optimum found?}
+    I -- Yes --> J([End: Return best permutation])
+    I -- No --> K[Update parameters: progress, K, and c]
+
+    K --> L[Calculate Weighted Ranking Leader]
+    L --> M{For each agent}
+
+    M -- Done --> H
+    M -- Next --> N{rand < K?}
+    
+    N -- Yes --> O[Exploration: candidate = leader + Gaussian noise]
+    N -- No --> P[Exploitation: candidate = c * leader + 1-c * current]
+    
+    O --> Q[ROV Mapping: Continuous -> Discrete]
+    P --> Q
+    
+    Q --> R[Full 2-opt: Local Search / Intensification]
+    
+    R --> S{Better fitness?}
+    S -- Yes --> T[Map Back: Discrete -> Continuous]
+    T --> U[Update agent's position, fitness, and Global Best]
+    U --> M
+    S -- No --> M
+```
 
 ### 3.4. Implementation 3: AO with Elite Injection (PMX)
-*Source file: `ao_algorithm_pmx.py`*
 
-This variant shifts some operations directly to discrete structures. The injection of leader genetic code fragments occurs with a frequency defined by the `injection_period` parameter.
+#### Hamming Distance
 
-#### 1. Hamming Distance: `hamming_distance_numba(p1, p2)`
-A distance measure between two discrete solutions (permutations):
-$$D_H(\pi_1, \pi_2) = \sum_{k=1}^{n} \mathbb{I}(\pi_1[k] \neq \pi_2[k])$$
-where $\mathbb{I}$ is the indicator function.
+$$
+D_H(\pi_1, \pi_2) =
+\sum_{k=1}^{n} \mathbb{I}(\pi_1[k] \neq \pi_2[k])
+$$
 
-#### 2. Elite Injection Mechanism: `elite_injection_numba`
-The size of genetic injection is a function of the Hamming distance from the leader:
-$$\text{injection\_size} = \max\left(1, \lfloor \text{injection\_rate} \cdot D_H(\pi_i, \pi_{best}) \rfloor\right)$$
+#### Elite Injection Mechanism
 
-The injection operator builds a new child solution $\pi^{new}$ for the base agent $\pi_i$ using the genes of the leader $\pi_{best}$.
+$$
+\text{injection\_size} =
+\max\left(1,\lfloor \text{injection\_rate} \cdot D_H(\pi_i,\pi_{best}) \rfloor\right)
+$$
+
+### Block Diagram
+
+```mermaid
+graph TD
+    A([Start: Initialization]) --> B[Initialize population and parameters]
+    B --> C{For each agent}
+    C --> D[ROV Mapping: Continuous -> Discrete]
+    D --> E[Full 2-opt: Local Search]
+    E --> F[Map Back: Discrete -> Continuous]
+    F --> G[Update best solution]
+    G --> C
+    C --> H[Main Loop: f < MaxF]
+
+    H --> I{f >= MaxF?}
+    I -- Yes --> J([End: Return result])
+    I -- No --> K[Update parameters K and c]
+
+    K --> L{For each agent}
+    L --> M[Update position: Exploration / Exploitation]
+    M --> N[ROV Mapping]
+
+    N --> R{Injection period reached?}
+
+    R -- Yes --> S[Compute Hamming Distance]
+    S --> T[Determine Injection Size]
+    T --> U[PMX Elite Injection]
+
+    R -- No --> O[Full 2-opt: Intensification]
+    U --> O
+
+    O --> P{Better fitness?}
+
+    P -- Yes --> Q[Update agent and global best]
+    P -- No --> L
+
+    Q --> L
+    L --> H
+
+```
 
 ---
 
 ## 4. Software and Usage Instructions
 
 ### Project Module Structure
+
 * `main.py` – Experiment coordinator.
 * `benchmark.py` – Statistical module.
 * `data_loader.py` – Input file parser.
 
 ### Implementation and Execution Guide
-1. Place source files in a single working directory.
-2. Create a `Scenarios/` folder and upload instance files (e.g., `bur26f.dat` and `bur26f.sln`).
-3. Install dependencies:
-   ```bash
-   pip install numpy numba pandas matplotlib
-4. Execute
-   ```bash
-   python main.py
-5. Go to folder `Result/bur26f/`, to see the performance raport (`final_report.txt`)
 
+```bash
+pip install numpy numba pandas matplotlib
+```
+
+```bash
+python main.py
+```
+
+---
 
 ## 5. Empirical Tests and Experimental Results
 
 The quality of the final solution fit is represented by the GAP metric:
 
-$$\text{GAP} = \frac{\text{Best\_Score} - \text{Optimum}}{\text{Optimum}} \cdot 100\%$$
+$$
+\text{GAP} =
+\frac{\text{Best\_Score} - \text{Optimum}}
+{\text{Optimum}}
+\cdot 100\%
+$$
