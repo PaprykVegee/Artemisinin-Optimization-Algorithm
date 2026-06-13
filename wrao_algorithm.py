@@ -1,10 +1,6 @@
 import numpy as np
 from numba import njit
 
-# ============================================================================
-# NUMBA-ACCELERATED UTILITIES
-# ============================================================================
-
 @njit(cache=True)
 def rov_mapping_numba(continuous_vector):
     """
@@ -98,8 +94,6 @@ def full_2opt_numba(permutation, A, B, current_f, max_f):
                 if current_f >= max_f:
 
                     return best_p, best_c, current_f
-
-                # test swap
                 tmp = p[i]
                 p[i] = p[j]
                 p[j] = tmp
@@ -117,8 +111,6 @@ def full_2opt_numba(permutation, A, B, current_f, max_f):
                     improved = True
 
                 else:
-
-                    # rollback swap
                     tmp = p[i]
                     p[i] = p[j]
                     p[j] = tmp
@@ -127,10 +119,6 @@ def full_2opt_numba(permutation, A, B, current_f, max_f):
 
     return best_p, best_c, current_f
 
-
-# ============================================================================
-# CLASS: ArtemisininOptimizer (Hybrid WRAO + 2-opt)
-# ============================================================================
 
 class WeightedArtemisininOptimizer:
     """
@@ -168,7 +156,6 @@ class WeightedArtemisininOptimizer:
 
         self.D = n_dim
 
-        # Ensure contiguous arrays for Numba performance
         self.A = np.ascontiguousarray(flow_matrix.astype(np.int64))
 
         self.B = np.ascontiguousarray(dist_matrix.astype(np.int64))
@@ -177,14 +164,12 @@ class WeightedArtemisininOptimizer:
 
         self.MaxF = max_f
 
-        self.f = 0  # Evaluation counter
+        self.f = 0
 
         self.optimum = optimum
 
-        # Portion of the ranked population used in weighted averaging
         self.ranking_portion = ranking_portion
 
-        # Initial population in continuous space [-1, 1]
         self.population = np.random.uniform(
             -1,
             1,
@@ -264,10 +249,8 @@ class WeightedArtemisininOptimizer:
         larger weights.
         """
 
-        # Sort population according to fitness
         sorted_idx = np.argsort(self.fitness)
 
-        # Determine how many agents participate in ranking
         top_k = max(1, int(self.N * self.ranking_portion))
 
         selected_idx = sorted_idx[:top_k]
@@ -276,14 +259,10 @@ class WeightedArtemisininOptimizer:
 
         selected_fitness = self.fitness[selected_idx]
 
-        # Convert minimization fitness into maximization weights
-        # Better fitness => larger weight
         weights = 1.0 / (selected_fitness + 1e-12)
 
-        # Normalize weights
         weights = weights / np.sum(weights)
 
-        # Weighted average leader
         weighted_leader = np.sum(
             selected_population * weights[:, np.newaxis],
             axis=0
@@ -309,7 +288,6 @@ class WeightedArtemisininOptimizer:
 
             self.fitness[i] = f_ls
 
-            # Ensure a global leader is assigned to avoid NoneType errors
             if self.best_agent is None or f_ls < self.best_fitness:
 
                 self.best_fitness = f_ls
@@ -334,19 +312,15 @@ class WeightedArtemisininOptimizer:
 
             self.initialize()
 
-            # Słownik na migawki populacji permutacji
             population_snapshots = {}
 
-            # Fail-safe to ensure best_agent exists
             if self.best_agent is None:
                 self.best_agent = self.population[0].copy()
                 self.best_fitness = self.fitness[0]
                 self.best_perm = self.rov_mapping(self.population[0]).copy()
 
-            # 1. Zrzut na POCZĄTKU algorytmu (zmapowany na permutacje + 1 dla formatu 1-indexed)
             population_snapshots["start"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
 
-            # Definiujemy punkty kontrolne dla parametrów MaxF (środek 1 i środek 2)
             midpoint_1 = self.MaxF * 0.33
             midpoint_2 = self.MaxF * 0.66
             
@@ -356,14 +330,11 @@ class WeightedArtemisininOptimizer:
             while self.f < self.MaxF:
                 progress = self.f / self.MaxF
 
-                # Dynamic WRAO parameters
                 K = 0.4 * (1 - progress)
                 c = 2.0 * np.exp(-(progress ** 2))
 
-                # Weighted ranking leader
                 ranking_leader = self._calculate_weighted_leader()
 
-                # --- PRZECHWYTYWANIE POPULACJI W TRAKCIE (ŚRODEK 1 i 2) ---
                 if not captured_mid1 and self.f >= midpoint_1:
                     population_snapshots["mid_1"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
                     captured_mid1 = True
@@ -381,25 +352,19 @@ class WeightedArtemisininOptimizer:
 
                     for j in range(self.D):
                         if np.random.rand() < K:
-                            # Elimination phase / Shaking
-                            # (random noise injection)
                             candidate_pos[j] = (
                                 ranking_leader[j]
                                 + np.random.normal(0, 0.4)
                             )
                         else:
-                            # Movement towards weighted ranking leader
-                            # (WRAO trajectory)
                             candidate_pos[j] = (
                                 c * ranking_leader[j]
                                 + (1 - c) * candidate_pos[j]
                             )
 
-                    # Refine new position with Local Search
                     perm_cand = self.rov_mapping(candidate_pos)
                     p_ls, f_ls = self._full_2opt(perm_cand)
 
-                    # Update agent if a better local minimum is discovered
                     if f_ls < self.fitness[i]:
                         self.fitness[i] = f_ls
                         self.population[i] = self._map_back(p_ls)
@@ -414,16 +379,13 @@ class WeightedArtemisininOptimizer:
                     print(f"Optimal solution found with fitness {self.best_fitness} at evaluation {self.f}.")
                     break
 
-            # Zabezpieczenie na wypadek przedwczesnego wyjścia (np. znalezienia optimum przed 33% lub 66%)
             if not captured_mid1:
                 population_snapshots["mid_1"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
             if not captured_mid2:
                 population_snapshots["mid_2"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
 
-            # 4. Zrzut na KONIEC algorytmu
             population_snapshots["end"] = [(self.rov_mapping(agent) + 1).tolist() for agent in self.population]
 
-            # Zwracamy spójny format 4 obiektów
             return (
                 np.array(self.best_perm) + 1,
                 self.best_fitness,
