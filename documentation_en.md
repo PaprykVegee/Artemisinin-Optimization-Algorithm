@@ -260,9 +260,8 @@ python main.py
 The quality of the final solution fit is represented by the GAP metric:
 
 $$
-\text{GAP} =
-\frac{\text{Best\_Score} - \text{Optimum}}
-{\text{Optimum}}
+\text{GAP} = 
+\frac{\text{Best\_Score} - \text{Optimum}}{\text{Optimum}} 
 \cdot 100\%
 $$
 
