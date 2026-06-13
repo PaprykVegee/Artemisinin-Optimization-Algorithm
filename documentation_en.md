@@ -108,7 +108,7 @@ graph TD
     P -- No --> L
     Q --> L
     L --> H
----
+```
 
 ### 3.3. Implementation 2: Weighted Artemisinin Optimizer (WRAO)
 *Source file: `wrao_algorithm.py`*
